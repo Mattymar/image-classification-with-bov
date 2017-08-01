@@ -33,6 +33,8 @@ class RootSIFT:
 
 
 class MacOSFile(object):
+    """Used to work around memory issues for large pickled files on MacOS"""
+
     def __init__(self, f):
         self.f = f
 
@@ -76,6 +78,8 @@ def pickle_load(file_path):
 
 
 def get_root_sift_features(labeled_paths):
+    """Get feature descriptors for each image"""
+    
     rs = RootSIFT()
     detector = cv2.xfeatures2d.SIFT_create()
     train_descs_list = []
@@ -88,11 +92,14 @@ def get_root_sift_features(labeled_paths):
             img = cv2.imread(path)
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
+            # Detect SIFT keypoints
             kps = detector.detect(gray, None)
 
+            # Detect MSER keypoints
             mser = cv2.MSER_create()
             mser_kps = mser.detect(gray)
 
+            # Calculate descriptors for SIFT and MSER keypoints and stack them
             kps, sift_descs = rs.compute(gray, kps)
             kps, mser_descs = rs.compute(gray, mser_kps)
 
@@ -112,8 +119,11 @@ def get_root_sift_features(labeled_paths):
                 print(sift_descs.shape, mser_descs.shape)
 
         except:
+            # Skip and note any failed images
             print(path + ' Could not be converted')
 
+    # Repeat above process for test images
+    # TODO: Add function to eliminate repeated code
     for path, label in test_paths:
         try:
             img = cv2.imread(path)
@@ -139,6 +149,7 @@ def get_root_sift_features(labeled_paths):
             print(path + ' Could not be converted')
     train_descs_array = np.vstack(train_descs_list)
 
+    # Store feature vectors as pickled files
     pickle_dump(train_descs_array, 'all_descriptors_full_10c.pkl')
     pickle_dump(train_img_dicts_list, 'train_img_dicts_list_full_10c.pkl')
     pickle_dump(test_img_dicts_list, 'test_img_dicts_list_full_10c.pkl')
@@ -161,6 +172,8 @@ def get_image_labels_and_paths(images_path):
 
 
 def spm_split(image):
+    """Splits image into grids of various sizes for spatial tests"""
+    
     h = image.shape[0]
     w = image.shape[1]
 

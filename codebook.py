@@ -7,15 +7,18 @@ import sift
 
 
 def build_codebook(all_features_array):
+    """Build the feature space for all images in the training set"""
     all_features_array = sift.pickle_load(all_features_array)
     nfeatures = all_features_array.shape[0]
-    nclusters = 200#int(np.sqrt(nfeatures) * 2)
+    nclusters = int(np.sqrt(nfeatures) * 2)
     codebook = MiniBatchKMeans(n_clusters=nclusters, max_iter=500).fit(all_features_array.astype('float64'))
 
     return codebook
 
 
 def build_codebook_spm(all_features_dict):
+    """Build feature space for each spatial level in all images of training set"""
+    
     with open(all_features_dict, 'rb') as all_features_dict:
         all_features_dict = pickle.load(all_features_dict)
         levels = ['l0', 'l1', 'l2']
@@ -29,6 +32,8 @@ def build_codebook_spm(all_features_dict):
 
 
 def build_image_histograms(codebook, train_img_dicts_list, test_img_dicts_list):
+    """Build the feature vector for each image"""
+    
     print(codebook.n_clusters)
     s = list(range(codebook.n_clusters))
     s.append('y')
@@ -38,10 +43,12 @@ def build_image_histograms(codebook, train_img_dicts_list, test_img_dicts_list):
     train_img_dicts_list = sift.pickle_load(train_img_dicts_list)
     for i in range(len(train_img_dicts_list)):
         try:
+            # Match each descriptor vector to a cluster in the codebook
             codewords = [codebook.predict(desc.reshape(1, -1))[0] for desc in train_img_dicts_list[i]['descriptors']]
         except:
             print(i)
-        #print(min(codewords), max(codewords))
+
+        # Build a histogram of number of ocurrences of all k features for each image
         histogram, clusters = np.histogram(codewords, bins=range(0, codebook.n_clusters + 1), density=False)
         data = list(histogram)
         data.append(train_img_dicts_list[i]['label'])
@@ -67,6 +74,8 @@ def build_image_histograms(codebook, train_img_dicts_list, test_img_dicts_list):
 
 
 def build_image_histograms_spm(levels_codebook, train_img_dicts_list, test_img_dicts_list):
+    """Build a feature vector for each spatial level of an image"""
+    
     s = list(range(codebook.n_clusters))
     s.append('y')
     train_df = pd.DataFrame(index=s)
@@ -75,10 +84,12 @@ def build_image_histograms_spm(levels_codebook, train_img_dicts_list, test_img_d
     train_img_dicts_list = sift.pickle_load(train_img_dicts_list)
     for i in range(len(train_img_dicts_list)):
         try:
+            # Match each descriptor vector to a cluster in the codebook
             codewords = [codebook.predict(desc.reshape(1, -1))[0] for desc in train_img_dicts_list[i]['descriptors']]
         except:
             print(i)
-        #print(min(codewords), max(codewords))
+
+        # Build a histogram of number of ocurrences of all k features for each image
         histogram, clusters = np.histogram(codewords, bins=range(0, codebook.n_clusters + 1), density=False)
         data = list(histogram)
         data.append(train_img_dicts_list[i]['label'])
